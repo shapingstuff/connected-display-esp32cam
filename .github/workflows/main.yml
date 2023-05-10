@@ -1,0 +1,56 @@
+name: connected-display-esp32cam
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build PlatformIO Project
+        run: pio run
+      - name: Upload firmware
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware.bin
+          path: .pio/build/esp32dev/firmware.bin
+      - name: Upload bootloader
+        uses: actions/upload-artifact@v3
+        with:
+          name: bootloader.bin
+          path: .pio/build/esp32dev/bootloader.bin
+      - name: Upload partitions
+        uses: actions/upload-artifact@v3
+        with:
+          name: partitions.bin
+          path: .pio/build/esp32dev/partitions.bin
+      - name: Upload boot app
+        uses: actions/upload-artifact@v3
+        with:
+          name: boot_app0.bin
+          path: ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin
+      - name: merge bins
+        run: ~/.platformio/packages/tool-esptoolpy/esptool.py --chip ESP32 merge_bin -o .pio/build/esp32dev/merged-firmware.bin --flash_mode dio --flash_size 4MB 0x1000 .pio/build/esp32dev/bootloader.bin 0x8000 .pio/build/esp32dev/partitions.bin 0xe000 ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin 0x10000 .pio/build/esp32dev/firmware.bin
+      - name: Upload merged firmware
+        uses: actions/upload-artifact@v3
+        with:
+          name: merged-firmware.bin
+          path: .pio/build/esp32dev/merged-firmware.bin
+      - name: Upload manifest
+        uses: actions/upload-artifact@v3
+        with:
+          name: manifest.json
+          path: manifest.json
