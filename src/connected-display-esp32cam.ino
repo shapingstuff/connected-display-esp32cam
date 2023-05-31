@@ -52,6 +52,7 @@ WiFiClientSecure client;
 #define PCLK_GPIO_NUM     22
 
 #define FLASH_PIN 4
+#define BUILTIN_LED 33
 
 String timerIntervalField = "30";    // time between each HTTP POST image
 unsigned int timerInterval = 30000;
@@ -67,6 +68,7 @@ void setup() {
   Serial.begin(115200);
 
   pinMode(FLASH_PIN, OUTPUT);
+  pinMode(BUILTIN_LED, OUTPUT);
 
   Serial.print("ESP32-CAM");
 
@@ -249,8 +251,8 @@ String sendPhoto() {
     getBody = "Connection to " + serverName +  " failed.";
     Serial.println(getBody);
   }
-  digitalWrite(FLASH_PIN, HIGH);
+  digitalWrite(BUILTIN_LED, HIGH);
   delay(100);
-  digitalWrite(FLASH_PIN, LOW);
+  digitalWrite(BUILTIN_LED, LOW);
   return getBody;
 }
