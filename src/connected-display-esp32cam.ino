@@ -22,7 +22,7 @@
 
 Preferences prefs;
 
-String namePrefix = "display-";
+String namePrefix = "";
 String displayName = "unknown";
 String serverName = "connected-display.herokuapp.com";   //
 String serverPath = "/upload";     // The default serverPath should be upload.php
