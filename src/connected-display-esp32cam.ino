@@ -24,46 +24,48 @@ Preferences prefs;
 
 String namePrefix = "";
 String displayName = "unknown";
-String serverName = "connected-display.herokuapp.com";   //
-String serverPath = "/upload";     // The default serverPath should be upload.php
-const int serverPort = 443; //server port for HTTPS
+String serverName = "http://irs-iot.ddns.net"; //
+String serverPath = "/upload";                 // The default serverPath should be upload.php
+const int serverPort = 80;                     // server port for HTTPS
 
 bool shouldSaveConfig = false;
 
 WiFiClientSecure client;
 
 // CAMERA_MODEL_AI_THINKER
-#define PWDN_GPIO_NUM     32
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM      0
-#define SIOD_GPIO_NUM     26
-#define SIOC_GPIO_NUM     27
+#define PWDN_GPIO_NUM 32
+#define RESET_GPIO_NUM -1
+#define XCLK_GPIO_NUM 0
+#define SIOD_GPIO_NUM 26
+#define SIOC_GPIO_NUM 27
 
-#define Y9_GPIO_NUM       35
-#define Y8_GPIO_NUM       34
-#define Y7_GPIO_NUM       39
-#define Y6_GPIO_NUM       36
-#define Y5_GPIO_NUM       21
-#define Y4_GPIO_NUM       19
-#define Y3_GPIO_NUM       18
-#define Y2_GPIO_NUM        5
-#define VSYNC_GPIO_NUM    25
-#define HREF_GPIO_NUM     23
-#define PCLK_GPIO_NUM     22
+#define Y9_GPIO_NUM 35
+#define Y8_GPIO_NUM 34
+#define Y7_GPIO_NUM 39
+#define Y6_GPIO_NUM 36
+#define Y5_GPIO_NUM 21
+#define Y4_GPIO_NUM 19
+#define Y3_GPIO_NUM 18
+#define Y2_GPIO_NUM 5
+#define VSYNC_GPIO_NUM 25
+#define HREF_GPIO_NUM 23
+#define PCLK_GPIO_NUM 22
 
 #define FLASH_PIN 4
 #define BUILTIN_LED 33
 
-String timerIntervalField = "30";    // time between each HTTP POST image
+String timerIntervalField = "30"; // time between each HTTP POST image
 unsigned int timerInterval = 30000;
-unsigned long previousMillis = 0;   // last time image was sent
+unsigned long previousMillis = 0; // last time image was sent
 
-void saveConfigCallback () {
+void saveConfigCallback()
+{
   Serial.println("WiFiManager settings changed");
   shouldSaveConfig = true;
 }
 
-void setup() {
+void setup()
+{
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   Serial.begin(115200);
 
@@ -83,23 +85,27 @@ void setup() {
   bool res;
   res = wm.autoConnect(); // password protected ap
 
-  if (!res) {
+  if (!res)
+  {
     Serial.println("Failed to connect to WiFi.");
   }
-  else {
+  else
+  {
     Serial.println("Connected to WiFi.");
   }
 
   // load / save camera name
   prefs.begin("conndisp");
-  if (shouldSaveConfig) {
+  if (shouldSaveConfig)
+  {
     displayName = String(customDisplayName.getValue());
     prefs.putString("name", displayName);
     timerIntervalField = String(customTimerIntervalSeconds.getValue());
     timerInterval = timerIntervalField.toInt() * 1000;
     prefs.putInt("interval", timerInterval);
   }
-  else {
+  else
+  {
     displayName = prefs.getString("name", "unknown");
     timerInterval = prefs.getInt("interval", 30000);
   }
@@ -112,7 +118,6 @@ void setup() {
   Serial.println();
   Serial.print("ESP32-CAM IP Address: ");
   Serial.println(WiFi.localIP());
-
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -137,21 +142,25 @@ void setup() {
   config.pixel_format = PIXFORMAT_JPEG;
 
   // init with high specs to pre-allocate larger buffers
-  if (psramFound()) {
+  if (psramFound())
+  {
     Serial.println("PSRAM found!");
-    //config.frame_size = FRAMESIZE_SVGA;
+    // config.frame_size = FRAMESIZE_SVGA;
     config.frame_size = FRAMESIZE_UXGA;
-    config.jpeg_quality = 6;  //0-63 lower number means higher quality
+    config.jpeg_quality = 6; // 0-63 lower number means higher quality
     config.fb_count = 2;
-  } else {
+  }
+  else
+  {
     config.frame_size = FRAMESIZE_CIF;
-    config.jpeg_quality = 12;  //0-63 lower number means higher quality
+    config.jpeg_quality = 12; // 0-63 lower number means higher quality
     config.fb_count = 1;
   }
 
   // camera init
   esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
+  if (err != ESP_OK)
+  {
     Serial.printf("Camera init failed with error 0x%x", err);
     delay(1000);
     ESP.restart();
@@ -160,21 +169,25 @@ void setup() {
   sendPhoto();
 }
 
-void loop() {
+void loop()
+{
   unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= timerInterval) {
+  if (currentMillis - previousMillis >= timerInterval)
+  {
     sendPhoto();
     previousMillis = currentMillis;
   }
 }
 
-String sendPhoto() {
+String sendPhoto()
+{
   String getAll;
   String getBody;
 
-  camera_fb_t * fb = NULL;
+  camera_fb_t *fb = NULL;
   fb = esp_camera_fb_get();
-  if (!fb) {
+  if (!fb)
+  {
     Serial.println("Camera capture failed");
     delay(1000);
     ESP.restart();
@@ -182,8 +195,9 @@ String sendPhoto() {
 
   Serial.println("Connecting to server: " + serverName);
 
-  client.setInsecure(); //skip certificate validation
-  if (client.connect(serverName.c_str(), serverPort)) {
+  client.setInsecure(); // skip certificate validation
+  if (client.connect(serverName.c_str(), serverPort))
+  {
     Serial.println("Connection successful!");
     String head = "--RandomNerdTutorials\r\nContent-Disposition: form-data; name=\"image\"; filename=\"" + namePrefix + displayName + ".jpg\"\r\nContent-Type: image/jpeg\r\n\r\n";
     String tail = "\r\n--RandomNerdTutorials--\r\n";
@@ -201,13 +215,16 @@ String sendPhoto() {
 
     uint8_t *fbBuf = fb->buf;
     size_t fbLen = fb->len;
-    
-    for (size_t n = 0; n < fbLen; n = n + 1024) {
-      if (n + 1024 < fbLen) {
+
+    for (size_t n = 0; n < fbLen; n = n + 1024)
+    {
+      if (n + 1024 < fbLen)
+      {
         client.write(fbBuf, 1024);
         fbBuf += 1024;
       }
-      else if (fbLen % 1024 > 0) {
+      else if (fbLen % 1024 > 0)
+      {
         size_t remainder = fbLen % 1024;
         client.write(fbBuf, remainder);
       }
@@ -220,26 +237,33 @@ String sendPhoto() {
     long startTimer = millis();
     boolean state = false;
 
-    while ((startTimer + timoutTimer) > millis()) {
+    while ((startTimer + timoutTimer) > millis())
+    {
       Serial.print(".");
       delay(100);
-      while (client.available()) {
+      while (client.available())
+      {
         char c = client.read();
-        if (c == '\n') {
-          if (getAll.length() == 0) {
+        if (c == '\n')
+        {
+          if (getAll.length() == 0)
+          {
             state = true;
           }
           getAll = "";
         }
-        else if (c != '\r') {
+        else if (c != '\r')
+        {
           getAll += String(c);
         }
-        if (state == true) {
+        if (state == true)
+        {
           getBody += String(c);
         }
         startTimer = millis();
       }
-      if (getBody.length() > 0) {
+      if (getBody.length() > 0)
+      {
         break;
       }
     }
@@ -247,8 +271,9 @@ String sendPhoto() {
     client.stop();
     Serial.println(getBody);
   }
-  else {
-    getBody = "Connection to " + serverName +  " failed.";
+  else
+  {
+    getBody = "Connection to " + serverName + " failed.";
     Serial.println(getBody);
   }
   digitalWrite(BUILTIN_LED, HIGH);
