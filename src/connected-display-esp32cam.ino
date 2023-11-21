@@ -166,6 +166,16 @@ void setup()
     ESP.restart();
   }
 
+  /*
+   s->set_res_raw(s, resolution, unused, unused, unused, offset_x, offset_y, total_x, total_y, width, height, unused, unused);
+  resolution = 0 \\ 1600 x 1200
+  resolution = 1 \\  800 x  600
+  resolution = 2 \\  400 x  296
+*/
+  // set the ideal crop size for the current shelf dimensions
+  sensor_t *s = esp_camera_sensor_get();
+  s->set_res_raw(s, 0, 0, 0, 0, 0, 90, 1600, 1000, 1600, 1000, true, true);
+
   sendPhoto();
 }
 
